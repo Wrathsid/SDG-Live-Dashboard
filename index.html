@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Google SDG Dashboard | ESG Audit 2024-25</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0a0e1a;
+    --bg-secondary: #111827;
+    --bg-card: #161d2e;
+    --bg-card-hover: #1c2540;
+    --border: #1e2d4a;
+    --text-primary: #f0f4ff;
+    --text-secondary: #8899bb;
+    --text-muted: #4a5a7a;
+    --accent-green: #22d3a5;
+    --accent-blue: #3b82f6;
+    --accent-yellow: #f59e0b;
+    --accent-red: #ef4444;
+    --accent-purple: #a855f7;
+    --accent-orange: #f97316;
+    --accent-teal: #14b8a6;
+    --nav-width: 240px;
+    --high: #22d3a5;
+    --medium: #f59e0b;
+    --low: #ef4444;
+  }
+  .light-mode {
+    --bg-primary: #f0f4ff;
+    --bg-secondary: #e8eef8;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f5f8ff;
+    --border: #d1daf0;
+    --text-primary: #0a0e1a;
+    --text-secondary: #4a5a7a;
+    --text-muted: #8899bb;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    display: flex;
+    min-height: 100vh;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: var(--nav-width);
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    height: 100vh;
+    z-index: 100;
+    transition: background 0.3s;
+  }
+  .sidebar-logo {
+    padding: 20px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .logo-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, #22d3a5, #3b82f6);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+  .logo-text h3 { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+  .logo-text p { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+  .nav-section { padding: 16px 12px; flex: 1; }
+  .nav-label { font-size: 10px; font-weight: 600; color: var(--text-muted); letter-spacing: 1.2px; text-transform: uppercase; padding: 0 8px; margin-bottom: 8px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 8px;
+    cursor: pointer; margin-bottom: 2px;
+    color: var(--text-secondary);
+    font-size: 14px; font-weight: 500;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+  }
+  .nav-item:hover { background: var(--bg-card); color: var(--text-primary); }
+  .nav-item.active {
+    background: linear-gradient(135deg, rgba(34,211,165,0.15), rgba(59,130,246,0.15));
+    color: var(--accent-green);
+    border-color: rgba(34,211,165,0.2);
+  }
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+  .sidebar-footer {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .theme-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 13px; color: var(--text-secondary);
+  }
+  .toggle-switch {
+    width: 44px; height: 24px;
+    background: var(--border);
+    border-radius: 12px;
+    position: relative; cursor: pointer;
+    transition: background 0.3s;
+  }
+  .toggle-switch.on { background: var(--accent-green); }
+  .toggle-knob {
+    width: 18px; height: 18px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 3px; left: 3px;
+    transition: transform 0.3s;
+  }
+  .toggle-switch.on .toggle-knob { transform: translateX(20px); }
+  .refresh-btn {
+    display: flex; align-items: center; gap: 8px;
+    background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+    border: none; color: white;
+    padding: 8px 16px; border-radius: 8px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer; width: 100%;
+    justify-content: center; margin-bottom: 12px;
+    transition: opacity 0.2s;
+  }
+  .refresh-btn:hover { opacity: 0.85; }
+
+  /* MAIN */
+  .main {
+    margin-left: var(--nav-width);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  .topbar {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: flex-start; justify-content: space-between;
+    background: var(--bg-secondary);
+    transition: background 0.3s;
+  }
+  .topbar h1 { font-size: 22px; font-weight: 700; color: var(--text-primary); }
+  .topbar p { font-size: 13px; color: var(--text-secondary); margin-top: 3px; }
+  .topbar-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .live-badge {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--accent-green);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .live-dot {
+    width: 7px; height: 7px;
+    background: var(--accent-green);
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+  .timestamp { font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+
+  .content { padding: 24px 28px; flex: 1; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* CARDS GRID */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+  .kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s, border 0.2s, transform 0.2s;
+  }
+  .kpi-card:hover { background: var(--bg-card-hover); transform: translateY(-2px); }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .kpi-card.green::before { background: var(--accent-green); }
+  .kpi-card.blue::before { background: var(--accent-blue); }
+  .kpi-card.yellow::before { background: var(--accent-yellow); }
+  .kpi-card.red::before { background: var(--accent-red); }
+  .kpi-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+  .kpi-icon { font-size: 22px; }
+  .live-tag {
+    font-size: 10px; font-weight: 600;
+    padding: 3px 8px; border-radius: 20px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .live-tag.green { background: rgba(34,211,165,0.15); color: var(--accent-green); }
+  .live-tag.yellow { background: rgba(245,158,11,0.15); color: var(--accent-yellow); }
+  .live-tag.red { background: rgba(239,68,68,0.15); color: var(--accent-red); }
+  .live-tag.blue { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+  .kpi-value { font-size: 32px; font-weight: 700; color: var(--text-primary); line-height: 1; margin-bottom: 6px; }
+  .kpi-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  /* PILLAR GRID */
+  .pillar-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+  .pillar-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    transition: background 0.3s;
+  }
+  .pillar-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-secondary); }
+  .pillar-score { font-size: 36px; font-weight: 700; margin-bottom: 4px; }
+  .pillar-score.env { color: var(--accent-green); }
+  .pillar-score.soc { color: var(--accent-yellow); }
+  .pillar-score.gov { color: var(--accent-blue); }
+  .pillar-desc { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+  .pillar-bar-bg { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .pillar-bar-fill { height: 100%; border-radius: 3px; transition: width 1s ease; }
+
+  /* CHARTS */
+  .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .chart-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    transition: background 0.3s;
+  }
+  .chart-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+  .chart-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
+  .chart-wrap { position: relative; }
+
+  /* ANALYTICS */
+  .analytics-top { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .pillar-compare { display: flex; flex-direction: column; gap: 14px; }
+  .pc-item {}
+  .pc-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px; font-weight: 600; }
+  .pc-label { display: flex; align-items: center; gap: 8px; }
+  .pc-bar-bg { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .pc-bar-fill { height: 100%; border-radius: 4px; transition: width 1.2s ease; }
+  .pc-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  /* HEATMAP TABLE */
+  .heatmap-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .heatmap-table th {
+    text-align: left; padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .heatmap-table td { padding: 8px 12px; border-bottom: 1px solid rgba(30,45,74,0.5); }
+  .heatmap-table tr:hover td { background: rgba(34,211,165,0.04); }
+  .sdg-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 6px;
+    font-size: 11px; font-weight: 700; color: white;
+  }
+  .score-chip {
+    display: inline-block; padding: 3px 10px; border-radius: 6px;
+    font-size: 12px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+    min-width: 44px; text-align: center;
+  }
+  .score-chip.high { background: rgba(34,211,165,0.2); color: var(--accent-green); }
+  .score-chip.medium { background: rgba(245,158,11,0.2); color: var(--accent-yellow); }
+  .score-chip.low { background: rgba(239,68,68,0.2); color: var(--accent-red); }
+  .status-badge {
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+  }
+  .status-badge.High { background: rgba(34,211,165,0.15); color: var(--accent-green); }
+  .status-badge.Medium { background: rgba(245,158,11,0.15); color: var(--accent-yellow); }
+  .status-badge.Low { background: rgba(239,68,68,0.15); color: var(--accent-red); }
+
+  /* SCORECARD PAGE */
+  .scorecard-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .sc-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    transition: all 0.2s;
+  }
+  .sc-card:hover { background: var(--bg-card-hover); transform: translateY(-2px); }
+  .sc-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .sc-num {
+    width: 36px; height: 36px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: white; flex-shrink: 0;
+  }
+  .sc-title { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+  .sc-category { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .sc-scores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+  .sc-score-item { text-align: center; }
+  .sc-score-label { font-size: 10px; color: var(--text-muted); margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .sc-score-val { font-size: 18px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+  .sc-score-val.env { color: var(--accent-green); }
+  .sc-score-val.soc { color: var(--accent-yellow); }
+  .sc-score-val.gov { color: var(--accent-blue); }
+  .sc-total { display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--border); }
+  .sc-total-label { font-size: 12px; color: var(--text-secondary); }
+  .sc-total-val { font-size: 20px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+  .sc-progress { margin-top: 10px; }
+  .sc-progress-bg { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .sc-progress-fill { height: 100%; border-radius: 2px; transition: width 1s ease; }
+
+  /* INSIGHTS */
+  .insights-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .insight-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    transition: background 0.3s;
+  }
+  .insight-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .insight-icon { font-size: 24px; }
+  .insight-title { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+  .insight-sub { font-size: 12px; color: var(--text-muted); }
+  .insight-item {
+    display: flex; gap: 12px; margin-bottom: 12px;
+    padding-bottom: 12px; border-bottom: 1px solid var(--border);
+  }
+  .insight-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .insight-bullet { width: 6px; height: 6px; border-radius: 50%; margin-top: 7px; flex-shrink: 0; }
+  .insight-text { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+  .insight-text strong { color: var(--text-primary); }
+  .supply-stat {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 14px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  .supply-stat-label { font-size: 13px; color: var(--text-secondary); }
+  .supply-stat-val { font-size: 16px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+  .maturity-bar { margin-top: 16px; }
+  .maturity-levels { display: flex; gap: 4px; height: 10px; border-radius: 5px; overflow: hidden; margin-bottom: 6px; }
+  .ml { flex: 1; }
+  .ml.active { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.3); }
+  .maturity-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); }
+
+  /* Filter bar */
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .filter-btn {
+    padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
+    background: var(--bg-card); color: var(--text-secondary);
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; font-family: 'Space Grotesk', sans-serif;
+  }
+  .filter-btn.active, .filter-btn:hover {
+    background: linear-gradient(135deg, rgba(34,211,165,0.2), rgba(59,130,246,0.2));
+    color: var(--accent-green); border-color: rgba(34,211,165,0.3);
+  }
+
+  /* Section header */
+  .section-header { margin-bottom: 16px; }
+  .section-title { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+  .section-desc { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+
+  /* Summary bar */
+  .summary-banner {
+    display: flex; gap: 16px;
+    background: linear-gradient(135deg, rgba(34,211,165,0.08), rgba(59,130,246,0.08));
+    border: 1px solid rgba(34,211,165,0.2);
+    border-radius: 12px; padding: 14px 20px;
+    margin-bottom: 20px; align-items: center; flex-wrap: wrap;
+  }
+  .sb-item { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+  .sb-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .sb-label { color: var(--text-muted); }
+  .sb-val { color: var(--text-primary); font-weight: 700; }
+
+  /* Scrollable table */
+  .table-scroll { overflow-x: auto; max-height: 400px; overflow-y: auto; }
+  .table-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
+  .table-scroll::-webkit-scrollbar-track { background: var(--border); }
+  .table-scroll::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 2px; }
+
+  /* responsive */
+  @media (max-width: 900px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .pillar-grid { grid-template-columns: 1fr; }
+    .charts-grid { grid-template-columns: 1fr; }
+    .analytics-top { grid-template-columns: 1fr; }
+    .insights-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">G</div>
+    <div class="logo-text">
+      <h3>SDG Dashboard</h3>
+      <p>Google ESG Audit 2024-25</p>
+    </div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Navigation</div>
+    <div class="nav-item active" onclick="showPage('overview', this)">
+      <span class="nav-icon">📊</span> Overview
+    </div>
+    <div class="nav-item" onclick="showPage('analytics', this)">
+      <span class="nav-icon">📈</span> Analytics
+    </div>
+    <div class="nav-item" onclick="showPage('scorecard', this)">
+      <span class="nav-icon">🎯</span> SDG Scorecard
+    </div>
+    <div class="nav-item" onclick="showPage('insights', this)">
+      <span class="nav-icon">💡</span> Insights
+    </div>
+  </div>
+  <div class="sidebar-footer">
+    <button class="refresh-btn" onclick="refreshData()">↻ Refresh Data</button>
+    <div class="theme-toggle">
+      <span>🌙 Dark Mode</span>
+      <div class="toggle-switch on" id="themeToggle" onclick="toggleTheme()">
+        <div class="toggle-knob"></div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar" id="topbar">
+    <div>
+      <h1 id="pageTitle">Overview</h1>
+      <p id="pageSubtitle">SDG Performance Dashboard</p>
+    </div>
+    <div class="topbar-right">
+      <div class="live-badge"><span class="live-dot"></span> LIVE</div>
+      <div class="timestamp" id="timestamp">—</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ============ OVERVIEW ============ -->
+    <div class="page active" id="page-overview">
+      <!-- KPI Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card green">
+          <div class="kpi-top"><span class="kpi-icon">🎯</span><span class="live-tag green">Live</span></div>
+          <div class="kpi-value">17</div>
+          <div class="kpi-label">Total SDG Goals</div>
+          <div class="kpi-sub">UN Sustainable Development Goals</div>
+        </div>
+        <div class="kpi-card blue">
+          <div class="kpi-top"><span class="kpi-icon">📊</span><span class="live-tag blue">Live</span></div>
+          <div class="kpi-value">1.99</div>
+          <div class="kpi-label">Avg SDG Score</div>
+          <div class="kpi-sub">Scale: −5 to +5</div>
+        </div>
+        <div class="kpi-card yellow">
+          <div class="kpi-top"><span class="kpi-icon">🏆</span><span class="live-tag green">Live</span></div>
+          <div class="kpi-value">SDG 9</div>
+          <div class="kpi-label">Top SDG Goal</div>
+          <div class="kpi-sub">Industry & Innovation</div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-top"><span class="kpi-icon">⚠️</span><span class="live-tag yellow">Live</span></div>
+          <div class="kpi-value">SDG 10</div>
+          <div class="kpi-label">Needs Attention</div>
+          <div class="kpi-sub">Reduced Inequalities</div>
+        </div>
+      </div>
+
+      <!-- Pillar Cards -->
+      <div class="pillar-grid">
+        <div class="pillar-card">
+          <div class="pillar-header">🌿 Environmental</div>
+          <div class="pillar-score env">2.3</div>
+          <div class="pillar-desc">Clean energy & climate action</div>
+          <div class="pillar-bar-bg"><div class="pillar-bar-fill" style="width:66%;background:var(--accent-green)"></div></div>
+        </div>
+        <div class="pillar-card">
+          <div class="pillar-header">👥 Social</div>
+          <div class="pillar-score soc">1.5</div>
+          <div class="pillar-desc">Healthcare, education & inclusion</div>
+          <div class="pillar-bar-bg"><div class="pillar-bar-fill" style="width:50%;background:var(--accent-yellow)"></div></div>
+        </div>
+        <div class="pillar-card">
+          <div class="pillar-header">🏛️ Governance</div>
+          <div class="pillar-score gov">2.8</div>
+          <div class="pillar-desc">Transparent partnerships & institutions</div>
+          <div class="pillar-bar-bg"><div class="pillar-bar-fill" style="width:72%;background:var(--accent-blue)"></div></div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-title">SDG Total Scores</div>
+          <div class="chart-sub">Score distribution across all 17 UN Sustainable Development Goals (−5 to +5 scale)</div>
+          <div class="chart-wrap" style="height:260px">
+            <canvas id="sdgBarChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Performance Distribution</div>
+          <div class="chart-sub">SDGs by performance tier</div>
+          <div class="chart-wrap" style="height:260px;display:flex;align-items:center;justify-content:center;flex-direction:column">
+            <canvas id="donutChart" style="max-height:190px;max-width:190px"></canvas>
+            <div id="donut-legend" style="display:flex;gap:16px;margin-top:12px;font-size:12px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ ANALYTICS ============ -->
+    <div class="page" id="page-analytics">
+      <div class="analytics-top">
+        <div class="chart-card">
+          <div class="chart-title">ESG Performance Radar</div>
+          <div class="chart-sub">Average scores across Environmental, Social, and Governance dimensions</div>
+          <div class="chart-wrap" style="height:280px;display:flex;align-items:center;justify-content:center">
+            <canvas id="radarChart" style="max-height:260px;max-width:260px"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">ESG Pillar Comparison</div>
+          <div class="chart-sub">Relative strength across E, S, G dimensions</div>
+          <div class="pillar-compare" style="margin-top:16px">
+            <div class="pc-item">
+              <div class="pc-header"><span class="pc-label">🌿 Environmental</span><span style="color:var(--accent-green);font-family:'JetBrains Mono',monospace">2.3</span></div>
+              <div class="pc-bar-bg"><div class="pc-bar-fill" style="width:66%;background:var(--accent-green)"></div></div>
+              <div class="pc-sub">Clean energy & climate resilience</div>
+            </div>
+            <div class="pc-item">
+              <div class="pc-header"><span class="pc-label">👥 Social</span><span style="color:var(--accent-blue);font-family:'JetBrains Mono',monospace">1.5</span></div>
+              <div class="pc-bar-bg"><div class="pc-bar-fill" style="width:50%;background:var(--accent-blue)"></div></div>
+              <div class="pc-sub">Healthcare & inclusion</div>
+            </div>
+            <div class="pc-item">
+              <div class="pc-header"><span class="pc-label">🏛️ Governance</span><span style="color:var(--accent-purple);font-family:'JetBrains Mono',monospace">2.8</span></div>
+              <div class="pc-bar-bg"><div class="pc-bar-fill" style="width:72%;background:var(--accent-purple)"></div></div>
+              <div class="pc-sub">Transparent administration & partnerships</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title">SDG Score Heatmap</div>
+        <div class="chart-sub">Breakdown of Environmental, Social, and Governance scores per SDG</div>
+        <div class="table-scroll">
+          <table class="heatmap-table" id="heatmapTable"></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SCORECARD ============ -->
+    <div class="page" id="page-scorecard">
+      <div class="summary-banner">
+        <div class="sb-item"><span class="sb-dot" style="background:var(--accent-green)"></span><span class="sb-label">High (≥3.0):</span><span class="sb-val" id="highCount">—</span></div>
+        <div class="sb-item"><span class="sb-dot" style="background:var(--accent-yellow)"></span><span class="sb-label">Medium (1.5–2.9):</span><span class="sb-val" id="medCount">—</span></div>
+        <div class="sb-item"><span class="sb-dot" style="background:var(--accent-red)"></span><span class="sb-label">Low (<1.5):</span><span class="sb-val" id="lowCount">—</span></div>
+        <div class="sb-item" style="margin-left:auto"><span class="sb-label">Avg Score:</span><span class="sb-val" style="color:var(--accent-green)">1.99 / 5.0</span></div>
+      </div>
+      <div class="filter-bar" id="filterBar">
+        <button class="filter-btn active" onclick="filterCards('all',this)">All SDGs</button>
+        <button class="filter-btn" onclick="filterCards('high',this)">🟢 High</button>
+        <button class="filter-btn" onclick="filterCards('medium',this)">🟡 Medium</button>
+        <button class="filter-btn" onclick="filterCards('low',this)">🔴 Low</button>
+      </div>
+      <div class="scorecard-grid" id="scorecardGrid"></div>
+    </div>
+
+    <!-- ============ INSIGHTS ============ -->
+    <div class="page" id="page-insights">
+      <div class="insights-grid">
+
+        <div class="insight-card">
+          <div class="insight-header">
+            <span class="insight-icon">🏆</span>
+            <div><div class="insight-title">Top Performing Areas</div><div class="insight-sub">SDGs with highest scores</div></div>
+          </div>
+          <div class="insight-item"><div class="insight-bullet" style="background:var(--accent-green)"></div><div class="insight-text"><strong>SDG 9 – Industry & Innovation (3.8):</strong> Core business strongly aligned with innovation and digital infrastructure — Google's highest-scoring SDG.</div></div>
+          <div class="insight-item"><div class="insight-bullet" style="background:var(--accent-green)"></div><div class="insight-text"><strong>SDG 7 – Affordable & Clean Energy (3.5):</strong> Global leadership in renewable energy procurement with 24/7 Carbon-Free Energy ambition.</div></div>
+          <div class="insight-item"><div class="insight-bullet" style="background:var(--accent-green)"></div><div class="insight-text"><strong>SDG 17 – Partnerships (3.0):</strong> Extensive collaborations with NGOs, governments, and suppliers globally including COP29 and UNGA participation.</div></div>
+          <div class="insight-item"><div class="insight-bullet" style="background:var(--accent-teal)"></div><div class="insight-text"><strong>SDG 12 – Responsible Consumption (2.8):</strong> Circular economy initiatives with 8.8M data center components reused and 82% zero-waste manufacturing.</div></div>
+        </div>
+
+        <div class="insight-card">
+          <div class="insight-header">
+            <span class="insight-icon">⚠️</span>
+            <div><div class="insight-title">Priority Gaps</div><div class="insight-sub">Areas requiring urgent attention</div></div>
+          </div>
+          <div class="insight-item"><div class="insight-bullet" style="background:var(--accent-red)"></div><div class="insight-text"><strong>SDG 10 – Reduced Inequalities (0.5):</strong> Limited systemic reach beyond accessibility features; significant gap in addressing structural inequalities.</div></div>
+          <div class="insight-item"><div class="insight-bullet" style="background:var(--accent-red)"></div><div class="insight-text"><strong>SDG 2 – Zero Hunger (0.8):</strong> Minimal direct impact; only indirect support through AI and data tools for agricultural use cases.</div></div>
+          <div class="insight-item"><div class="insight-bullet" style="background:var(--accent-yellow)"></div><div class="insight-text"><strong>Scope 3 Emissions:</strong> Increased 22% YoY due to data center construction and hardware manufacturing — critical challenge for net-zero goals.</div></div>
+          <div class="insight-item"><div class="insight-bullet" style="background:var(--accent-yellow)"></div><div class="insight-text"><strong>Asia-Pacific Renewables:</strong> Renewable energy adoption among suppliers progressing slower in APAC due to grid constraints.</div></div>
+        </div>
+
+        <div class="insight-card">
+          <div class="insight-header">
+            <span class="insight-icon">🔗</span>
+            <div><div class="insight-title">Supply Chain ESG</div><div class="insight-sub">Key supply chain metrics 2024–25</div></div>
+          </div>
+          <div class="supply-stat"><span class="supply-stat-label">Supplier CDP Participation</span><span class="supply-stat-val" style="color:var(--accent-green)">96%</span></div>
+          <div class="supply-stat"><span class="supply-stat-label">Zero Waste to Landfill Sites</span><span class="supply-stat-val" style="color:var(--accent-green)">82%</span></div>
+          <div class="supply-stat"><span class="supply-stat-label">Data Center Components Reused</span><span class="supply-stat-val" style="color:var(--accent-blue)">8.8M</span></div>
+          <div class="supply-stat"><span class="supply-stat-label">Recycled Plastic in Products</span><span class="supply-stat-val" style="color:var(--accent-teal)">40%</span></div>
+          <div class="supply-stat"><span class="supply-stat-label">Scope 3 Emissions (YoY change)</span><span class="supply-stat-val" style="color:var(--accent-red)">+22%</span></div>
+          <div class="supply-stat"><span class="supply-stat-label">GHG Reduction Targets (Suppliers)</span><span class="supply-stat-val" style="color:var(--accent-yellow)">76%</span></div>
+        </div>
+
+        <div class="insight-card">
+          <div class="insight-header">
+            <span class="insight-icon">🚀</span>
+            <div><div class="insight-title">ESG Maturity Level</div><div class="insight-sub">Overall corporate sustainability maturity</div></div>
+          </div>
+          <div class="maturity-bar">
+            <div style="font-size:22px;font-weight:700;color:var(--accent-green);margin-bottom:8px">Integrated → Transformative</div>
+            <div class="maturity-levels">
+              <div class="ml" style="background:rgba(239,68,68,0.4)"></div>
+              <div class="ml" style="background:rgba(245,158,11,0.4)"></div>
+              <div class="ml" style="background:rgba(34,211,165,0.4)"></div>
+              <div class="ml active" style="background:var(--accent-green)"></div>
+              <div class="ml" style="background:rgba(34,211,165,0.2)"></div>
+            </div>
+            <div class="maturity-labels">
+              <span>Reactive</span><span>Compliant</span><span>Proactive</span><span>Integrated</span><span>Transformative</span>
+            </div>
+          </div>
+          <div style="margin-top:16px">
+            <div class="insight-item"><div class="insight-bullet" style="background:var(--accent-green)"></div><div class="insight-text"><strong>Strength:</strong> World-class governance frameworks (TCFD, GRI, SASB), clean energy leadership (64% CFE), and $75M+ social impact investments.</div></div>
+            <div class="insight-item"><div class="insight-bullet" style="background:var(--accent-yellow)"></div><div class="insight-text"><strong>Key Gap:</strong> Embodied carbon from construction and supply chain Scope 3 emissions remain the critical path to net-zero by 2030.</div></div>
+            <div class="insight-item" style="border:none"><div class="insight-bullet" style="background:var(--accent-blue)"></div><div class="insight-text"><strong>Outlook:</strong> Google's AI capabilities position it uniquely to drive transformative sustainability impact at billion-user scale if equity gaps are addressed.</div></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+// ===== DATA =====
+const SDG_DATA = [
+  { id:1,  name:"No Poverty",               icon:"🏠", color:"#E5243B", env:1.0, soc:1.5, gov:0.5, total:1.0,  status:"Low",    justification:"Indirect contribution through digital inclusion and supplier labor standards." },
+  { id:2,  name:"Zero Hunger",              icon:"🌾", color:"#DDA63A", env:1.0, soc:0.5, gov:1.0, total:0.8,  status:"Low",    justification:"Limited direct impact; indirect support via AI and data tools for agriculture." },
+  { id:3,  name:"Good Health & Well-being", icon:"💚", color:"#4C9F38", env:1.0, soc:2.0, gov:1.5, total:1.5,  status:"Medium", justification:"Strong employee well-being, health benefits, and safe workplaces." },
+  { id:4,  name:"Quality Education",        icon:"📚", color:"#C5192D", env:1.5, soc:3.5, gov:2.5, total:2.5,  status:"Medium", justification:"Major impact through digital education tools, Google.org grants, and skill programs." },
+  { id:5,  name:"Gender Equality",          icon:"⚧️", color:"#FF3A21", env:1.0, soc:2.5, gov:2.0, total:1.8,  status:"Medium", justification:"DEI programs, pay equity audits, and leadership representation improvements." },
+  { id:6,  name:"Clean Water & Sanitation", icon:"💧", color:"#26BDE2", env:2.5, soc:1.5, gov:2.0, total:2.0,  status:"Medium", justification:"Water-positive commitment and supplier water risk assessments." },
+  { id:7,  name:"Affordable & Clean Energy",icon:"⚡", color:"#FCC30B", env:4.5, soc:2.5, gov:3.5, total:3.5,  status:"High",   justification:"Global leadership in renewable energy procurement and 24/7 CFE ambition." },
+  { id:8,  name:"Decent Work & Growth",     icon:"💼", color:"#A21942", env:1.5, soc:2.5, gov:2.5, total:2.2,  status:"Medium", justification:"Strong labor practices, supplier code enforcement, and job creation." },
+  { id:9,  name:"Industry & Innovation",    icon:"🏭", color:"#FD6925", env:3.0, soc:3.5, gov:5.0, total:3.8,  status:"High",   justification:"Core business strongly aligned with innovation and digital infrastructure." },
+  { id:10, name:"Reduced Inequalities",     icon:"⚖️", color:"#DD1367", env:0.5, soc:0.5, gov:0.5, total:0.5,  status:"Low",    justification:"Some progress via accessibility and inclusion; limited systemic reach." },
+  { id:11, name:"Sustainable Cities",       icon:"🏙️", color:"#FD9D24", env:2.0, soc:1.5, gov:1.0, total:1.5,  status:"Medium", justification:"Smart city tools and climate data platforms support urban resilience." },
+  { id:12, name:"Responsible Consumption",  icon:"♻️", color:"#BF8B2E", env:3.5, soc:2.0, gov:3.0, total:2.8,  status:"Medium", justification:"Circular economy initiatives, recycled materials, zero-waste manufacturing." },
+  { id:13, name:"Climate Action",           icon:"🌡️", color:"#3F7E44", env:3.5, soc:1.5, gov:2.5, total:2.5,  status:"Medium", justification:"Net-zero operations achieved; Scope 3 emissions remain a key challenge." },
+  { id:14, name:"Life Below Water",         icon:"🐋", color:"#0A97D9", env:2.0, soc:0.5, gov:1.0, total:1.2,  status:"Low",    justification:"Indirect benefits through reduced plastics and responsible waste management." },
+  { id:15, name:"Life on Land",             icon:"🌲", color:"#56C02B", env:2.5, soc:1.0, gov:2.0, total:1.8,  status:"Medium", justification:"Biodiversity commitments and nature-positive pilots in data centers." },
+  { id:16, name:"Peace, Justice & Institutions",icon:"🕊️",color:"#00689D",env:1.0,soc:1.5,gov:2.0,total:1.5,status:"Medium", justification:"Strong governance, ethics, transparency, and data protection frameworks." },
+  { id:17, name:"Partnerships for Goals",   icon:"🤝", color:"#19486A", env:2.0, soc:3.0, gov:4.0, total:3.0,  status:"High",   justification:"Extensive partnerships with NGOs, governments, and suppliers globally." }
+];
+
+// ===== TIMESTAMP =====
+function updateTimestamp() {
+  const now = new Date();
+  document.getElementById('timestamp').textContent =
+    'Updated ' + now.toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(updateTimestamp, 1000);
+updateTimestamp();
+
+// ===== THEME =====
+let darkMode = true;
+function toggleTheme() {
+  darkMode = !darkMode;
+  document.body.classList.toggle('light-mode', !darkMode);
+  const t = document.getElementById('themeToggle');
+  t.classList.toggle('on', darkMode);
+}
+
+// ===== NAV =====
+const pageMeta = {
+  overview:   { title:'Overview',     subtitle:'SDG Performance Dashboard' },
+  analytics:  { title:'Analytics',    subtitle:'Deep-dive ESG Analytics' },
+  scorecard:  { title:'SDG Scorecard',subtitle:'Individual Goal Performance' },
+  insights:   { title:'Insights',     subtitle:'Key Findings & Recommendations' }
+};
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('pageTitle').textContent = pageMeta[id].title;
+  document.getElementById('pageSubtitle').textContent = pageMeta[id].subtitle;
+}
+
+function refreshData() { updateTimestamp(); }
+
+// ===== SCORE CHIP =====
+function getScoreClass(v) { return v >= 3.0 ? 'high' : v >= 1.5 ? 'medium' : 'low'; }
+function getStatusColor(s) { return s === 'High' ? 'var(--accent-green)' : s === 'Medium' ? 'var(--accent-yellow)' : 'var(--accent-red)'; }
+
+// ===== BAR CHART =====
+const barColors = SDG_DATA.map(s => s.color);
+const barCtx = document.getElementById('sdgBarChart').getContext('2d');
+new Chart(barCtx, {
+  type: 'bar',
+  data: {
+    labels: SDG_DATA.map(s => 'SDG ' + s.id),
+    datasets: [{
+      label: 'SDG Score',
+      data: SDG_DATA.map(s => s.total),
+      backgroundColor: barColors.map(c => c + 'cc'),
+      borderColor: barColors,
+      borderWidth: 1.5,
+      borderRadius: 5,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` ${SDG_DATA[ctx.dataIndex].name}: ${ctx.raw}`
+        }
+      }
+    },
+    scales: {
+      y: {
+        min: -1, max: 5,
+        grid: { color: 'rgba(255,255,255,0.05)' },
+        ticks: { color: '#8899bb', font: { family: 'JetBrains Mono', size: 11 } },
+        border: { color: 'rgba(255,255,255,0.05)' }
+      },
+      x: {
+        grid: { display: false },
+        ticks: { color: '#8899bb', font: { family: 'JetBrains Mono', size: 10 } }
+      }
+    }
+  }
+});
+
+// ===== DONUT CHART =====
+const high = SDG_DATA.filter(s => s.total >= 3.0).length;
+const medium = SDG_DATA.filter(s => s.total >= 1.5 && s.total < 3.0).length;
+const low = SDG_DATA.filter(s => s.total < 1.5).length;
+const donutCtx = document.getElementById('donutChart').getContext('2d');
+new Chart(donutCtx, {
+  type: 'doughnut',
+  data: {
+    labels: ['High', 'Medium', 'Low'],
+    datasets: [{ data: [high, medium, low], backgroundColor: ['#22d3a5','#f59e0b','#ef4444'], borderWidth: 0, hoverOffset: 6 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    cutout: '72%',
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} SDGs` } } }
+  }
+});
+const legend = document.getElementById('donut-legend');
+[['High', high, '#22d3a5'], ['Medium', medium, '#f59e0b'], ['Low', low, '#ef4444']].forEach(([l,v,c]) => {
+  legend.innerHTML += `<span style="display:flex;align-items:center;gap:5px;color:#8899bb;font-size:12px"><span style="width:10px;height:10px;border-radius:50%;background:${c};display:inline-block"></span>${l}: ${v}</span>`;
+});
+
+// ===== RADAR CHART =====
+const radarCtx = document.getElementById('radarChart').getContext('2d');
+new Chart(radarCtx, {
+  type: 'radar',
+  data: {
+    labels: ['Environmental','Social','Governance'],
+    datasets: [{
+      label: 'Google ESG',
+      data: [2.3, 1.5, 2.8],
+      backgroundColor: 'rgba(34,211,165,0.15)',
+      borderColor: 'rgba(34,211,165,0.8)',
+      borderWidth: 2,
+      pointBackgroundColor: ['#22d3a5','#f59e0b','#a855f7'],
+      pointRadius: 6,
+      pointHoverRadius: 8
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    scales: {
+      r: {
+        min: 0, max: 5,
+        grid: { color: 'rgba(255,255,255,0.08)' },
+        angleLines: { color: 'rgba(255,255,255,0.08)' },
+        ticks: { display: false },
+        pointLabels: { color: '#8899bb', font: { family: 'Space Grotesk', size: 12, weight: '600' } }
+      }
+    },
+    plugins: { legend: { display: false } }
+  }
+});
+
+// ===== HEATMAP TABLE =====
+const table = document.getElementById('heatmapTable');
+table.innerHTML = `
+  <thead>
+    <tr>
+      <th>SDG</th>
+      <th>Environmental</th>
+      <th>Social</th>
+      <th>Governance</th>
+      <th>Total</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${SDG_DATA.map(s => `
+      <tr>
+        <td><span class="sdg-badge" style="background:${s.color}">${s.id}</span> &nbsp;${s.name}</td>
+        <td><span class="score-chip ${getScoreClass(s.env)}">${s.env.toFixed(1)}</span></td>
+        <td><span class="score-chip ${getScoreClass(s.soc)}">${s.soc.toFixed(1)}</span></td>
+        <td><span class="score-chip ${getScoreClass(s.gov)}">${s.gov.toFixed(1)}</span></td>
+        <td><span class="score-chip ${getScoreClass(s.total)}">${s.total.toFixed(1)}</span></td>
+        <td><span class="status-badge ${s.status}">${s.status}</span></td>
+      </tr>
+    `).join('')}
+  </tbody>`;
+
+// ===== SCORECARD =====
+document.getElementById('highCount').textContent = high;
+document.getElementById('medCount').textContent = medium;
+document.getElementById('lowCount').textContent = low;
+
+function buildScoreCards(filter) {
+  const grid = document.getElementById('scorecardGrid');
+  const data = filter === 'all' ? SDG_DATA :
+    filter === 'high' ? SDG_DATA.filter(s => s.total >= 3.0) :
+    filter === 'medium' ? SDG_DATA.filter(s => s.total >= 1.5 && s.total < 3.0) :
+    SDG_DATA.filter(s => s.total < 1.5);
+
+  grid.innerHTML = data.map(s => {
+    const fillPct = (s.total / 5) * 100;
+    const c = getStatusColor(s.status);
+    return `
+    <div class="sc-card" data-status="${s.status}">
+      <div class="sc-top">
+        <div class="sc-num" style="background:${s.color}">${s.id}</div>
+        <div>
+          <div class="sc-title">${s.icon} ${s.name}</div>
+          <div class="sc-category">${s.status} Progress</div>
+        </div>
+      </div>
+      <div class="sc-scores">
+        <div class="sc-score-item">
+          <div class="sc-score-label">Env</div>
+          <div class="sc-score-val env">${s.env.toFixed(1)}</div>
+        </div>
+        <div class="sc-score-item">
+          <div class="sc-score-label">Soc</div>
+          <div class="sc-score-val soc">${s.soc.toFixed(1)}</div>
+        </div>
+        <div class="sc-score-item">
+          <div class="sc-score-label">Gov</div>
+          <div class="sc-score-val gov">${s.gov.toFixed(1)}</div>
+        </div>
+      </div>
+      <div class="sc-total">
+        <div class="sc-total-label">Total Score</div>
+        <div class="sc-total-val" style="color:${c}">${s.total.toFixed(1)}</div>
+      </div>
+      <div class="sc-progress">
+        <div class="sc-progress-bg">
+          <div class="sc-progress-fill" style="width:${fillPct}%;background:${c}"></div>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--text-muted);line-height:1.4">${s.justification}</div>
+    </div>`;
+  }).join('');
+}
+buildScoreCards('all');
+
+function filterCards(filter, el) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  buildScoreCards(filter);
+}
+</script>
+</body>
+</html>
